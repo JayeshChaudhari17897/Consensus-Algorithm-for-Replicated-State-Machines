@@ -45,12 +45,6 @@ class Event():
 
 
 
-if __name__ == '__main__':
-    #e = Event(1,"jayesh")
-    #print(str(e.description()))
-    #j = [1,2,3,4]
-    #print(str(sha512(j)))
-
 
 
 

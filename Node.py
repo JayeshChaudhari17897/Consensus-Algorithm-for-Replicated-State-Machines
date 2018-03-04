@@ -4,8 +4,17 @@ from eve import Event
 from pickle import dumps,loads
 from itertools import zip_longest
 from maj import majority
+from functools import reduce
+from bfs import bfs
+from dfs import dfs
+from topsort import toposort
+from random_generator import randrange
+from nacl.bindings import crypto_sign
+from signing import VerifyKey,SigningKey
 
-C = 5
+
+
+C = 6
 class Node:
 
     def __init__(self, signing_key, network, no_of_nodes, stake):
@@ -88,6 +97,19 @@ class Node:
                 h = ev.sha512
 
             return new + (h,)
+
+        def ask_sync (self, pk, info):
+
+            msg = pk.verify(info)
+            cs = loads(msg)
+
+            subset = {h: self.hg[h] for h in bfs(
+                (self.head,),
+                lambda u: (p for p in self.hg[u].parents
+                           if self.hg[p].verify_key not in cs or self.height[p] > cs[self.hg[p].verify_key]))}
+            msg = dumps((self.head, subset))
+
+            return self.signing_key.sign(msg)
 
         def ancestors(self, c):
             while True:
@@ -177,7 +199,7 @@ class Node:
                     if r_ - r == 1:
                         self.votes[y][x] = x in s
                     else:
-                        v, t = majority((self.stake[self.hg[w].verify_key], self.votes[w][x]) for w in s)
+                        v, t = majority((self.stake[self.hashgraph[w].verify_key], self.votes[w][x]) for w in s)
                         if (r_ - r) % C != 0:
                             if t > self.min_s:
                                 self.famous[x] = v
@@ -189,12 +211,60 @@ class Node:
                                 self.votes[y][x] = v
                             else:
                                 # the 1st bit is same as any other bit right? # TODO not!
-                                self.votes[y][x] = bool(self.hg[y].signature[0] // 128)
+                                self.votes[y][x] = bool(self.hashgraph[y].signature[0] // 128)
 
             new_c = {r for r in done
                      if all(w in self.famous for w in self.witnesses[r].values())}
             self.consensus |= new_c
             return new_c
+
+        def find_order(self, new_c):
+            to_int = lambda x: int.from_bytes(self.hashgraph[x].signature, byteorder='big')
+
+            for r in sorted(new_c):
+                f_w = {w for w in self.witnesses[r].values() if self.famous[w]}
+                white = reduce(lambda a, b: a ^ to_int(b), f_w, 0)
+                ts = {}
+                seen = set()
+                for x in bfs(filter(self.tbd.__contains__, f_w),
+                             lambda u: (p for p in self.hashgraph[u].parents if p in self.tbd)):
+                    c = self.hashgraph[x].verify_key
+                    s = {w for w in f_w if c in self.can_see[w]
+                         and self.higher(self.can_see[w][c], x)}
+                    if sum(self.stake[self.hashgraph[w].verify_key] for w in s) > self.tot_stake / 2:
+                        self.tbd.remove(x)
+                        seen.add(x)
+                        times = []
+                        for w in s:
+                            a = w
+                            while (c in self.can_see[a]
+                                   and self.higher(self.can_see[a][c], x)
+                                   and self.hashgraph[a].parents):
+                                a = self.hashgraph[a].p[0]
+                            times.append(self.hashgraph[a].t)
+                        times.sort()
+                        ts[x] = .5 * (times[len(times) // 2] + times[(len(times) + 1) // 2])
+                final = sorted(seen, key=lambda x: (ts[x], white ^ to_int(x)))
+                for i, x in enumerate(final):
+                    self.idx[x] = i + len(self.transactions)
+                self.transactions += final
+            if self.consensus:
+                print(self.consensus)
+
+        def main(self):
+            """Main working loop."""
+
+            new = ()
+            while True:
+                payload = (yield new)
+
+                # pick a random node to sync with but not me
+                node_id = tuple(self.network.keys() - {self.id})[randrange(self.n - 1)]
+                new = self.sync(node_id, payload)
+                self.divide_rounds(new)
+
+                new_c = self.decide_fame()
+                self.find_order(new_c)
 
 
 
