@@ -210,7 +210,7 @@ class Node:
                             if t > self.min_s:
                                 self.votes[y][x] = v
                             else:
-                                # the 1st bit is same as any other bit right? # TODO not!
+                                
                                 self.votes[y][x] = bool(self.hashgraph[y].signature[0] // 128)
 
             new_c = {r for r in done
@@ -252,13 +252,13 @@ class Node:
                 print(self.consensus)
 
         def main(self):
-            """Main working loop."""
+            
 
             new = ()
             while True:
                 payload = (yield new)
 
-                # pick a random node to sync with but not me
+                
                 node_id = tuple(self.network.keys() - {self.id})[randrange(self.n - 1)]
                 new = self.sync(node_id, payload)
                 self.divide_rounds(new)
