@@ -1,4 +1,5 @@
 from nacl.utils import  random
+
 def randrange(n):
     a = (n.bit_length() + 7) // 8  # number of bytes to store n
     b = 8 * a - n.bit_length()     # number of shifts to have good bit number

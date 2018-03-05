@@ -33,7 +33,8 @@ class Event():
         return self.d, self.parents, self.timestamp , self.verify_key, self. signature
 
     def __setstate__(self, state):
-        assert isinstance(state, self)
+
+       # assert isinstance(state, self)
         self.d, self.parents, self.timestamp, self.verify_key, self.signature = state
 
     @property

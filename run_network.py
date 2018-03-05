@@ -1,6 +1,8 @@
 from random_generator import randrange
-from signing import SigningKey
+from pro650_nacl.signing import SigningKey
 from Node import Node
+from pro650_nacl.signing import SigningKey
+
 def run_network(n_nodes, n_turns):
     signing_keys = [SigningKey.generate() for _ in range(n_nodes)]
 
@@ -18,6 +20,7 @@ def run_network(n_nodes, n_turns):
         next(m)
     for i in range(n_turns):
         r = randrange(n_nodes)
-        print('working node: %i, event number: %i' % (r, i))
+        print("Event no - %i   Node working - %i" % ( i,r))
         next(mains[r])
     return nodes
+
