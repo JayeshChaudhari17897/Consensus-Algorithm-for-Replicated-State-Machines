@@ -1,7 +1,7 @@
 Consensus algorithm for replicated state machines.
 
 
-This project is not running yet, will soon update the running model. 
+UPDATE - This project is now running on system level, will soon update the running model on distributed systems. 
 
 In first phase we are focusing on implementing a system level network and a GUI to visualize transactions [ Only needed for human satisfaction, not at all needed to build any application on hashgraph], in later phase we'll try to build this on TCP/IP level to take it to real world scenario.
 
